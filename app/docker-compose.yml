@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2:3b}
+      - NODE_ENV=production
+    volumes:
+      - db-data:/app/data
+    depends_on:
+      - ollama
+    networks:
+      - local-notion-net
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - local-notion-net
+    command: >
+      sh -c "
+        ollama serve &
+        sleep 5 &&
+        ollama pull ${OLLAMA_MODEL:-llama3.2:3b} &&
+        wait
+      "
+
+volumes:
+  db-data:
+    driver: local
+  ollama-data:
+    driver: local
+
+networks:
+  local-notion-net:
+    driver: bridge

@@ -1,0 +1,15 @@
+node_modules
+.git
+.gitignore
+.vscode
+.idea
+.next
+data
+*.md
+!README.md
+openspec
+__tests__
+vitest.config.ts
+vitest.setup.ts
+.eslintrc*
+.env.local

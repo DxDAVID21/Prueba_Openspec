@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #ffffff;
+  --color-foreground: #1a1a1a;
+  --color-sidebar: #f7f7f5;
+  --color-sidebar-hover: #ebebea;
+  --color-sidebar-active: #e8e8e6;
+  --color-border: #e8e8e6;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #9b9a97;
+  --color-text-muted: #6b6b6b;
+  --color-accent: #2eaadc;
+  --color-accent-hover: #2488b0;
+  --color-selection: #d9f2ff;
+  --color-code-bg: #f7f6f3;
+  --color-todo-checked: #2eaadc;
+  --color-hover: #f0f0f0;
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+.dark {
+  --color-background: #191919;
+  --color-foreground: #e3e3e3;
+  --color-sidebar: #202020;
+  --color-sidebar-hover: #2c2c2c;
+  --color-sidebar-active: #333333;
+  --color-border: #333333;
+  --color-text-primary: #e3e3e3;
+  --color-text-secondary: #6b6b6b;
+  --color-text-muted: #9b9a97;
+  --color-accent: #529cca;
+  --color-accent-hover: #6db3e2;
+  --color-selection: #1a3a4a;
+  --color-code-bg: #252525;
+  --color-todo-checked: #529cca;
+  --color-hover: #2c2c2c;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
