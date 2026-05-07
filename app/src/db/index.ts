@@ -28,14 +28,15 @@ function initializeSchema(database: Database.Database): void {
       version INTEGER PRIMARY KEY
     );
 
-    CREATE TABLE IF NOT EXISTS pages (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL DEFAULT 'Untitled',
-      parent_id TEXT REFERENCES pages(id) ON DELETE CASCADE,
-      "order" INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+      CREATE TABLE IF NOT EXISTS pages (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL DEFAULT 'Untitled',
+        content TEXT NOT NULL DEFAULT '',
+        parent_id TEXT REFERENCES pages(id) ON DELETE CASCADE,
+        "order" INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
 
     CREATE TABLE IF NOT EXISTS blocks (
       id TEXT PRIMARY KEY,
@@ -55,6 +56,19 @@ function initializeSchema(database: Database.Database): void {
   const version = database.prepare('SELECT version FROM schema_version').get() as { version: number } | undefined;
   if (!version) {
     database.prepare('INSERT INTO schema_version (version) VALUES (?)').run(1);
+  }
+
+  if (!version || version.version < 2) {
+    try {
+      database.exec('ALTER TABLE pages ADD COLUMN content TEXT NOT NULL DEFAULT \'\'');
+    } catch {
+      // Column may already exist
+    }
+    if (version) {
+      database.prepare('UPDATE schema_version SET version = ?').run(2);
+    } else {
+      database.prepare('UPDATE schema_version SET version = ?').run(2);
+    }
   }
 }
 

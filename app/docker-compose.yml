@@ -24,13 +24,7 @@ services:
       - OLLAMA_HOST=0.0.0.0
     networks:
       - local-notion-net
-    command: >
-      sh -c "
-        ollama serve &
-        sleep 5 &&
-        ollama pull ${OLLAMA_MODEL:-llama3.2:3b} &&
-        wait
-      "
+    entrypoint: ["sh", "-c", "ollama serve & sleep 5 && ollama pull ${OLLAMA_MODEL:-llama3.2:3b} && wait"]
 
 volumes:
   db-data:

@@ -89,10 +89,19 @@ export function getAllPages(): Page[] {
   return rows.map(mapPage);
 }
 
+export function savePageContent(id: string, content: string): Page {
+  const db = getDb();
+  db.prepare(
+    'UPDATE pages SET content = ?, updated_at = datetime(\'now\') WHERE id = ?'
+  ).run(content, id);
+  return getPage(id);
+}
+
 function mapPage(row: Record<string, unknown>): Page {
   return {
     id: row.id as string,
     title: row.title as string,
+    content: row.content as string,
     parentId: row.parent_id as string | null,
     order: row.order as number,
     createdAt: row.created_at as string,

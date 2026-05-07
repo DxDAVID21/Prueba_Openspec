@@ -4,7 +4,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { common, createLowlight } from "lowlight";
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useRef, useCallback, useState, useMemo } from "react";
 import { FormattingToolbar } from "./formatting-toolbar";
 import { AIToolbar } from "./ai-toolbar";
 import { Loader2, FileText } from "lucide-react";
@@ -17,8 +17,60 @@ interface EditorProps {
 
 export function Editor({ pageId }: EditorProps) {
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [blocks, setBlocks] = useState<string | null>(null);
+  const [initialContent, setInitialContent] = useState<string>("");
+  const [loaded, setLoaded] = useState(false);
+  const currentIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!pageId) {
+      setLoaded(false);
+      setInitialContent("");
+      currentIdRef.current = null;
+      return;
+    }
+
+    if (pageId === currentIdRef.current) return;
+    currentIdRef.current = pageId;
+    setLoaded(false);
+    setInitialContent("");
+
+    fetch(`/api/pages/${pageId}/blocks`)
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((data) => {
+        setInitialContent(data.html || "");
+      })
+      .catch(() => {
+        setInitialContent("");
+      })
+      .finally(() => {
+        setLoaded(true);
+      });
+  }, [pageId]);
+
+  const debouncedSave = useRef(
+    (() => {
+      let timeout: ReturnType<typeof setTimeout>;
+      return (html: string, pid: string) => {
+        setSaving(true);
+        clearTimeout(timeout);
+        timeout = setTimeout(async () => {
+          try {
+            await fetch(`/api/pages/${pid}/blocks`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ html }),
+            });
+          } catch {
+            console.error("Failed to save blocks");
+          }
+          setSaving(false);
+        }, 500);
+      };
+    })()
+  );
 
   const editor = useEditor({
     extensions: [
@@ -30,64 +82,14 @@ export function Editor({ pageId }: EditorProps) {
         defaultLanguage: "javascript",
       }),
     ],
-    content: "",
+    content: loaded ? initialContent : "",
     onUpdate: ({ editor }) => {
-      debouncedSave(editor.getHTML());
-    },
-    editable: !!pageId,
-  });
-
-  const debouncedSave = useCallback(
-    (() => {
-      let timeout: NodeJS.Timeout;
-      return (html: string) => {
-        setSaving(true);
-        clearTimeout(timeout);
-        timeout = setTimeout(async () => {
-          if (!pageId) return;
-          try {
-            await fetch(`/api/pages/${pageId}/blocks`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ html }),
-            });
-          } catch {
-            console.error("Failed to save blocks");
-          }
-          setSaving(false);
-        }, 500);
-      };
-    })(),
-    [pageId]
-  );
-
-  useEffect(() => {
-    if (!pageId || !editor) return;
-    setLoading(true);
-    fetch(`/api/pages/${pageId}/blocks`)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data) => {
-        setBlocks(data.html || null);
-      })
-      .catch(() => {
-        setBlocks(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [pageId, editor]);
-
-  useEffect(() => {
-    if (editor && blocks !== undefined) {
-      const current = editor.getHTML();
-      if (current !== blocks) {
-        editor.commands.setContent(blocks || "");
+      if (pageId) {
+        debouncedSave.current(editor.getHTML(), pageId);
       }
-    }
-  }, [editor, blocks]);
+    },
+    editable: loaded,
+  });
 
   if (!pageId) {
     return (
@@ -103,21 +105,24 @@ export function Editor({ pageId }: EditorProps) {
     );
   }
 
+  if (!loaded) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          Loading page...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
       <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {saving && (
-            <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
-              <Loader2 className="h-3 w-3 animate-spin" />
-              Saving...
-            </div>
-          )}
-        </div>
-        {loading && (
+        {saving && (
           <div className="flex items-center gap-1 text-xs text-[var(--color-text-secondary)]">
             <Loader2 className="h-3 w-3 animate-spin" />
-            Loading...
+            Saving...
           </div>
         )}
       </div>
